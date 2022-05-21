@@ -45,17 +45,18 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="Utility\ExtensionMethods.cs" />
     <Compile Include="MemberUpdater.cs" />
-    <Compile Include="PrefabDryCostWriter.cs" />
-    <Compile Include="ScaleExponents.cs" />
-    <Compile Include="SingletonBehavior.cs" />
-    <Compile Include="Tools.cs" />
+    <Compile Include="KSPAddons\PrefabDryCostWriter.cs" />
+    <Compile Include="KSPAddons\ScaleExponents.cs" />
+    <Compile Include="KSPAddons\SingletonBehavior.cs" />
+    <Compile Include="KSPAddons\Tech.cs" />
+    <Compile Include="Utility\Tools.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Scale.cs" />
+    <Compile Include="PartScaler.cs" />
     <Compile Include="ScaleType.cs" />
-    <Compile Include="Tuple.cs" />
-    <Compile Include="Updater.cs" />
+    <Compile Include="Utility\Tuple.cs" />
+    <Compile Include="KSPAddons\Updater.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="$(ManagedPath)\System.dll">
@@ -89,6 +90,7 @@
       <Name>PartScalerAPI</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <RepoRootPath>$(SolutionDir)</RepoRootPath>
