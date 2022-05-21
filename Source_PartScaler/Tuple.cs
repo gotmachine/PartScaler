@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace TweakScale
+namespace PartScaler
 {
     static class Tuple
     {

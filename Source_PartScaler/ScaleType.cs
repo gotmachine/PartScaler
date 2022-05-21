@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace TweakScale
+namespace PartScaler
 {
     [KSPAddon(KSPAddon.Startup.EditorAny, false)]
     public class TechUpdater : MonoBehaviour

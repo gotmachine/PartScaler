@@ -45,13 +45,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Enums.cs" />
     <Compile Include="ExtensionMethods.cs" />
-    <Compile Include="Hotkey.cs" />
-    <Compile Include="HotkeyManager.cs" />
-    <Compile Include="Legacy.cs" />
     <Compile Include="MemberUpdater.cs" />
-    <Compile Include="OSD.cs" />
     <Compile Include="PrefabDryCostWriter.cs" />
     <Compile Include="ScaleExponents.cs" />
     <Compile Include="SingletonBehavior.cs" />
@@ -61,7 +56,6 @@
     <Compile Include="ScaleType.cs" />
     <Compile Include="Tuple.cs" />
     <Compile Include="Updater.cs" />
-    <Compile Include="HotkeyAble.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="$(ManagedPath)\System.dll">

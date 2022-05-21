@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace TweakScale
+namespace PartScaler
 {
     public class MemberUpdater
     {

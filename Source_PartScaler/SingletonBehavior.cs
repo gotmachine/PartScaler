@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace TweakScale
+namespace PartScaler
 {
     class SingletonBehavior<T> : MonoBehaviour where T : SingletonBehavior<T>
     {

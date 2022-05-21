@@ -1,5 +1,0 @@
-C:\Users\Got\source\repos\PartScaler\Source_PartScalerAPI\bin\Debug\PartScalerAPI.dll
-C:\Users\Got\source\repos\PartScaler\Source_PartScalerAPI\bin\Debug\PartScalerAPI.pdb
-C:\Users\Got\source\repos\PartScaler\Source_PartScalerAPI\obj\Debug\PartScalerAPI.csproj.CoreCompileInputs.cache
-C:\Users\Got\source\repos\PartScaler\Source_PartScalerAPI\obj\Debug\PartScalerAPI.dll
-C:\Users\Got\source\repos\PartScaler\Source_PartScalerAPI\obj\Debug\PartScalerAPI.pdb

@@ -1,9 +1,0 @@
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\bin\Debug\PartScaler.dll
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\bin\Debug\PartScaler.pdb
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\bin\Debug\PartScalerAPI.dll
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\bin\Debug\PartScalerAPI.pdb
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\obj\Debug\PartScaler.csprojAssemblyReference.cache
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\obj\Debug\PartScaler.csproj.CoreCompileInputs.cache
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\obj\Debug\PartScaler.csproj.CopyComplete
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\obj\Debug\PartScaler.dll
-C:\Users\Got\source\repos\PartScaler\Source_PartScaler\obj\Debug\PartScaler.pdb

@@ -1,19 +1,16 @@
 using System;
 using System.Linq;
-using System.Reflection;
 using UnityEngine;
-//using ModuleWheels;
 
-namespace TweakScale
+namespace PartScaler
 {
-    public class TweakScale : PartModule, IPartCostModifier, IPartMassModifier
+    public class PartScaler : PartModule, IPartCostModifier, IPartMassModifier
     {
         /// <summary>
         /// The selected scale. Different from currentScale only for destination single update, where currentScale is set to match this.
         /// </summary>
         [KSPField(isPersistant = false, guiActiveEditor = true, guiName = "Scale", guiFormat = "0.000", guiUnits = "m")]
         [UI_ScaleEdit(scene = UI_Scene.Editor)]
-// ReSharper disable once InconsistentNaming
         public float tweakScale = -1;
 
         /// <summary>
@@ -21,28 +18,24 @@ namespace TweakScale
         /// </summary>
         [KSPField(isPersistant = false, guiActiveEditor = true, guiName = "Scale")]
         [UI_ChooseOption(scene = UI_Scene.Editor)]
-// ReSharper disable once InconsistentNaming
         public int tweakName = 0;
 
         /// <summary>
         /// The scale to which the part currently is scaled.
         /// </summary>
         [KSPField(isPersistant = true)]
-// ReSharper disable once InconsistentNaming
         public float currentScale = -1;
 
         /// <summary>
         /// The default scale, i.e. the number by which to divide tweakScale and currentScale to get the relative size difference from when the part is used without TweakScale.
         /// </summary>
         [KSPField(isPersistant = true)]
-// ReSharper disable once InconsistentNaming
         public float defaultScale = -1;
 
         /// <summary>
         /// Whether the part should be freely scalable or limited to destination list of allowed values.
         /// </summary>
         [KSPField(isPersistant = false)]
-// ReSharper disable once InconsistentNaming
         public bool isFreeScale = false;
 
         /// <summary>
@@ -69,7 +62,6 @@ namespace TweakScale
         /// The exponentValue by which the part is scaled by default. When destination part uses MODEL { scale = ... }, this will be different from (1,1,1).
         /// </summary>
         [KSPField(isPersistant = true)]
-// ReSharper disable once InconsistentNaming
         public Vector3 defaultTransformScale = new Vector3(0f, 0f, 0f);
 
         private bool _firstUpdateWithParent = true;
@@ -94,8 +86,6 @@ namespace TweakScale
         /// </summary>
         [KSPField(isPersistant = false)]
         public float MassScale = 1;
-
-        private Hotkeyable _chainingEnabled;
 
         /// <summary>
         /// The ScaleType for this part.
@@ -130,8 +120,6 @@ namespace TweakScale
             ScaleType = new ScaleType(ModuleNode);
             SetupFromConfig(ScaleType);
             tweakScale = currentScale = defaultScale;
-
-            tfInterface = Type.GetType("TestFlightCore.TestFlightInterface, TestFlightCore", false);
         }
 
         /// <summary>
@@ -146,7 +134,7 @@ namespace TweakScale
             _prefabPart = part.partInfo.partPrefab;
             _updaters = TweakScaleUpdater.CreateUpdaters(part).ToArray();
 
-            ScaleType = (_prefabPart.Modules["TweakScale"] as TweakScale).ScaleType;
+            ScaleType = (_prefabPart.Modules["TweakScale"] as PartScaler).ScaleType;
             SetupFromConfig(ScaleType);
 
             if (!isFreeScale && ScaleFactors.Length != 0)
@@ -170,9 +158,7 @@ namespace TweakScale
             else
             {
                 DryCost = (float)(part.partInfo.cost - _prefabPart.Resources.Cast<PartResource>().Aggregate(0.0, (a, b) => a + b.maxAmount * b.info.unitCost));
-                if (part.Modules.Contains("FSfuelSwitch"))
-                  ignoreResourcesForCost = true;
-                
+
                 if (DryCost < 0)
                 {
                     Debug.LogError("TweakScale: part=" + part.name + ", DryCost=" + DryCost.ToString());
@@ -268,9 +254,6 @@ namespace TweakScale
                 {
                     GameEvents.onEditorShipModified.Add(OnEditorShipModified);
                 }
-
-                _chainingEnabled = HotkeyManager.Instance.AddHotkey("Scale chaining", new[] {KeyCode.LeftShift},
-                    new[] {KeyCode.LeftControl, KeyCode.K}, false);
             }
 
             // scale IVA overlay
@@ -290,11 +273,6 @@ namespace TweakScale
             if (!isFreeScale)
             {
                 tweakScale = ScaleFactors[tweakName];
-            }
-
-            if ((_chainingEnabled != null) && _chainingEnabled.State)
-            {
-                ChainScale();
             }
 
             ScalePart(true, false);
@@ -393,12 +371,6 @@ namespace TweakScale
             if (part.Modules.Contains("ModuleDataTransmitter"))
                 UpdateAntennaPowerDisplay();
 
-            // MFT support
-            UpdateMftModule();
-
-            // TF support
-            updateTestFlight();
-
             // send scaling part message
             var data = new BaseEventDetails(BaseEventDetails.Sender.USER);
             data.Set<float>("factorAbsolute", ScalingFactor.absolute.linear);
@@ -441,45 +413,6 @@ namespace TweakScale
                 pcm.partCrew[i] = string.Empty;
 
             ShipConstruction.ShipManifest.SetPartManifest(part.craftID, pcm);
-        }
-
-        void UpdateMftModule()
-        {
-            try
-            {
-                if (_prefabPart.Modules.Contains("ModuleFuelTanks"))
-                {
-                    scaleMass = false;
-                    var m = _prefabPart.Modules["ModuleFuelTanks"];
-                    FieldInfo fieldInfo = m.GetType().GetField("totalVolume", BindingFlags.Public | BindingFlags.Instance);
-                    if (fieldInfo != null)
-                    {
-                        double oldVol = (double)fieldInfo.GetValue(m) * 0.001d;
-                        var data = new BaseEventDetails(BaseEventDetails.Sender.USER);
-                        data.Set<string>("volName", "Tankage");
-                        data.Set<double>("newTotalVolume", oldVol * ScalingFactor.absolute.cubic);
-                        part.SendEvent("OnPartVolumeChanged", data, 0);
-                    }
-                    else Tools.LogWf("MFT interaction failed (fieldinfo=null)");
-                }
-            }
-            catch (Exception e)
-            {
-                Tools.LogWf("Exception during MFT interaction" + e.ToString());
-            }
-        }
-
-        public static Type tfInterface = null;
-        private void updateTestFlight()
-        {
-            if (null == tfInterface) return;
-            BindingFlags tBindingFlags = BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static;
-            string name = "scale";
-            string value = ScalingFactor.absolute.linear.ToString();
-            string owner = "TweakScale";
-
-            bool valueAdded = (bool)tfInterface.InvokeMember("AddInteropValue", BindingFlags.InvokeMethod | BindingFlags.Public | BindingFlags.Static, null, null, new System.Object[] { part, name, value, owner });
-            Debug.Log("[TweakScale] TF: valueAdded=" + valueAdded + ", value=" + value.ToString());
         }
 
         private void UpdateAntennaPowerDisplay()
@@ -714,7 +647,7 @@ namespace TweakScale
             for (int i=0; i< len; i++)
             {
                 var child = part.children[i];
-                var b = child.GetComponent<TweakScale>();
+                var b = child.GetComponent<PartScaler>();
                 if (b == null)
                     continue;
 
@@ -745,7 +678,7 @@ namespace TweakScale
                 Debug.Log("[TweakScale]" + ScaleType.ToString());
                 return true;
             }
-            if (this != part.GetComponent<TweakScale>())
+            if (this != part.GetComponent<PartScaler>())
             {
                 enabled = false; // disable TweakScale module
                 Tools.LogWf("Duplicate TweakScale module on part [{0}] {1}", part.partInfo.name, part.partInfo.title);

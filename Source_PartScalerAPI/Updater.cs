@@ -1,4 +1,4 @@
-﻿namespace TweakScale
+﻿namespace PartScaler
 {
     public interface IRescalable
     {

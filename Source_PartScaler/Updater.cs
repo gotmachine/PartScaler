@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace TweakScale
+namespace PartScaler
 {
     public abstract class RescalableRegistratorAddon : MonoBehaviour
     {
@@ -117,13 +117,13 @@ namespace TweakScale
     {
         private readonly Part _part;
         private readonly Part _basePart;
-        private readonly TweakScale _ts;
+        private readonly PartScaler _ts;
 
         public TSGenericUpdater(Part part)
         {
             _part = part;
             _basePart = PartLoader.getPartInfoByName(part.partInfo.name).partPrefab;
-            _ts = part.Modules.OfType<TweakScale>().First();
+            _ts = part.Modules.OfType<PartScaler>().First();
         }
 
         public void OnRescale(ScalingFactor factor)
@@ -158,14 +158,14 @@ namespace TweakScale
         }
 
         readonly Part _part;
-        readonly TweakScale _ts;
+        readonly PartScaler _ts;
         bool _rescale = true;
         readonly Dictionary<KSPParticleEmitter, EmitterData> _scales = new Dictionary<KSPParticleEmitter, EmitterData>();
 
         public EmitterUpdater(Part part)
         {
             _part = part;
-            _ts = part.Modules.OfType<TweakScale>().First();
+            _ts = part.Modules.OfType<PartScaler>().First();
         }
 
         public void OnRescale(ScalingFactor factor)
