@@ -1,0 +1,276 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <Import Project="$(MSBuildProjectFile).user" Condition="Exists('$(MSBuildProjectFile).user')" />
+  <PropertyGroup>
+    <KSPExecutable Condition="$([MSBuild]::IsOsPlatform('Windows'))">KSP_x64.exe</KSPExecutable>
+    <KSPExecutable Condition="$([MSBuild]::IsOsPlatform('OSX'))">KSP.app</KSPExecutable>
+    <KSPExecutable Condition="$([MSBuild]::IsOsPlatform('Linux'))">KSP.x86_64</KSPExecutable>
+    <ManagedRelativePath Condition="$([MSBuild]::IsOsPlatform('Windows'))">KSP_x64_Data\Managed</ManagedRelativePath>
+    <ManagedRelativePath Condition="$([MSBuild]::IsOsPlatform('OSX'))">KSP.app\Contents\Resources\Data\Managed</ManagedRelativePath>
+    <ManagedRelativePath Condition="$([MSBuild]::IsOsPlatform('Linux'))">KSP_Data\Managed</ManagedRelativePath>
+    <ManagedPath>$(ReferencePath)\$(ManagedRelativePath)</ManagedPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{70D38878-43DB-4F6E-8002-45ADA5391AF7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>PartScaler</RootNamespace>
+    <AssemblyName>PartScaler</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <StartAction>Program</StartAction>
+    <StartProgram>$(ReferencePath)\$(KSPExecutable)</StartProgram>
+    <StartWorkingDirectory>$(ReferencePath)</StartWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Enums.cs" />
+    <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="Hotkey.cs" />
+    <Compile Include="HotkeyManager.cs" />
+    <Compile Include="Legacy.cs" />
+    <Compile Include="MemberUpdater.cs" />
+    <Compile Include="OSD.cs" />
+    <Compile Include="PrefabDryCostWriter.cs" />
+    <Compile Include="ScaleExponents.cs" />
+    <Compile Include="SingletonBehavior.cs" />
+    <Compile Include="Tools.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Scale.cs" />
+    <Compile Include="ScaleType.cs" />
+    <Compile Include="Tuple.cs" />
+    <Compile Include="Updater.cs" />
+    <Compile Include="HotkeyAble.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="$(ManagedPath)\System.dll">
+      <Name>System (KSP/Mono)</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(ManagedPath)\mscorlib.dll">
+      <Name>System.Core (KSP/Mono)</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(ManagedPath)\KSPAssets.dll">
+      <Name>System.Xml (KSP/Mono)</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(ManagedPath)\UnityEngine*.dll">
+      <Name>UnityEngine</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(ManagedPath)\Assembly-CSharp.dll">
+      <Name>Assembly-CSharp</Name>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="$(ManagedPath)\Assembly-CSharp-firstpass.dll">
+      <Name>Assembly-CSharp-firstpass</Name>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Source_PartScalerAPI\PartScalerAPI.csproj">
+      <Project>{2be63d8b-350e-4edd-959c-4b7397984364}</Project>
+      <Name>PartScalerAPI</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <RepoRootPath>$(SolutionDir)</RepoRootPath>
+    <GameDataFolderName>PartScaler</GameDataFolderName>
+    <UsePluginsFolder>true</UsePluginsFolder>
+    <CopyReleaseBinariesToRepo>false</CopyReleaseBinariesToRepo>
+    <AVCFilename>PartScaler.version</AVCFilename>
+  </PropertyGroup>
+  <Target Name="BeforeBuild" Condition="'$(Configuration)' == 'Release'">
+    <GetAVCVersion Path="$(RepoRootPath)\GameData\$(GameDataFolderName)\$(AVCFilename)">
+      <Output PropertyName="AVCFullVersion" TaskParameter="FullVersion" />
+    </GetAVCVersion>
+    <UpdateAssemblyVersion Path="$(MSBuildProjectDirectory)\Properties\AssemblyInfo.cs" Version="$(AVCFullVersion)" />
+  </Target>
+  <Target Name="AfterBuild">
+    <Error Condition="'$(ReferencePath)' == '' OR !Exists('$(ReferencePath)')" Text="ReferencePath=$(ReferencePath) os empty or isn't a valid path" />
+    <CallTarget Targets="CopyToKSP" />
+    <CallTarget Targets="CopyBinariesToRepo" Condition="'$(Configuration)' == 'Release' AND '$(CopyReleaseBinariesToRepo)' == 'true'" />
+    <CallTarget Targets="MakeReleaseZip" Condition="'$(Configuration)' == 'Release'" />
+  </Target>
+  <Target Name="CopyToKSP">
+    <RemoveDir Condition="Exists('$(ReferencePath)\GameData\$(GameDataFolderName)')" Directories="$(ReferencePath)\GameData\$(GameDataFolderName)" />
+    <ItemGroup>
+      <GameDataFiles Include="$(RepoRootPath)\GameData\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(GameDataFiles)" DestinationFolder="$(ReferencePath)\GameData\%(RecursiveDir)" />
+    <PropertyGroup>
+      <BinariesKSPGameDataPath Condition="'$(UsePluginsFolder)' == 'true'">$(ReferencePath)\GameData\$(GameDataFolderName)\Plugins</BinariesKSPGameDataPath>
+      <BinariesKSPGameDataPath Condition="'$(UsePluginsFolder)' == 'false'">$(ReferencePath)\GameData\$(GameDataFolderName)</BinariesKSPGameDataPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <BinariesToCopy Include="$(TargetDir)\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(BinariesKSPGameDataPath)" />
+  </Target>
+  <Target Name="CopyBinariesToRepo">
+    <PropertyGroup>
+      <BinariesRepoRootPath Condition="'$(UsePluginsFolder)' == 'true'">$(RepoRootPath)\GameData\$(GameDataFolderName)\Plugins</BinariesRepoRootPath>
+      <BinariesRepoRootPath Condition="'$(UsePluginsFolder)' == 'false'">$(RepoRootPath)\GameData\$(GameDataFolderName)</BinariesRepoRootPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <BinariesToCopy Include="$(TargetDir)\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(BinariesRepoRootPath)" />
+  </Target>
+  <Target Name="MakeReleaseZip">
+    <PropertyGroup>
+      <PublishFolder>$(RepoRootPath)\Releases</PublishFolder>
+      <PublishTempFolderPath>$(PublishFolder)\Temp</PublishTempFolderPath>
+      <PublishPluginRootPath>$(PublishTempFolderPath)\GameData\$(GameDataFolderName)</PublishPluginRootPath>
+      <PublishBinariesPath Condition="'$(UsePluginsFolder)' == 'true'">$(PublishPluginRootPath)\Plugins</PublishBinariesPath>
+      <PublishBinariesPath Condition="'$(UsePluginsFolder)' == 'false'">$(PublishPluginRootPath)</PublishBinariesPath>
+    </PropertyGroup>
+    <RemoveDir Condition="'$(PublishTempFolderPath)' != '' AND Exists('$(PublishTempFolderPath)')" Directories="$(PublishTempFolderPath)" />
+    <ItemGroup>
+      <GameDataFiles Include="$(RepoRootPath)\GameData\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(GameDataFiles)" DestinationFolder="$(PublishTempFolderPath)\GameData\%(RecursiveDir)" />
+    <ItemGroup>
+      <BinariesToCopy Include="$(TargetDir)\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BinariesToCopy)" DestinationFolder="$(PublishBinariesPath)" />
+    <Copy SourceFiles="$(RepoRootPath)\README.md" DestinationFolder="$(PublishPluginRootPath)" />
+    <GetAVCVersion Path="$(RepoRootPath)\GameData\$(GameDataFolderName)\$(AVCFilename)">
+      <Output PropertyName="AVCVersionMajor" TaskParameter="Major" />
+      <Output PropertyName="AVCVersionMinor" TaskParameter="Minor" />
+      <Output PropertyName="AVCVersionPatch" TaskParameter="Patch" />
+    </GetAVCVersion>
+    <ZipDirectory SourceDirectory="$(PublishTempFolderPath)" DestinationFile="$(PublishFolder)\$(AssemblyName)_$(AVCVersionMajor).$(AVCVersionMinor).$(AVCVersionPatch).zip" Overwrite="true" />
+  </Target>
+  <UsingTask TaskName="GetAVCVersion" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <Path ParameterType="System.String" Required="true" />
+      <Major ParameterType="System.String" Output="true" />
+      <Minor ParameterType="System.String" Output="true" />
+      <Patch ParameterType="System.String" Output="true" />
+      <Build ParameterType="System.String" Output="true" />
+      <FullVersion ParameterType="System.String" Output="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+            string content = File.ReadAllText(Path);
+            content = content.Replace(" ", "").Replace("\r", "").Replace("\n", "").Replace("\t", "");
+
+            string startString = "\"VERSION\"";
+            int start = content.IndexOf(startString, StringComparison.OrdinalIgnoreCase) + startString.Length;
+            start = content.IndexOf('{', start) + 1;
+            int end = content.IndexOf('}', start);
+            content = content.Substring(start, end - start);
+
+            string itemName = "\"MAJOR\":";
+            int current = content.IndexOf(itemName, StringComparison.OrdinalIgnoreCase);
+            if (current >= 0)
+            {
+                current += itemName.Length;
+                while (current < content.Length && char.IsNumber(content[current]))
+                {
+                    Major += content[current];
+                    current++;
+                }
+            }
+            else
+            {
+                Major = "0";
+            }
+
+            itemName = "\"MINOR\":";
+            current = content.IndexOf(itemName, StringComparison.OrdinalIgnoreCase);
+            if (current >= 0)
+            {
+                current += itemName.Length;
+                while (current < content.Length && char.IsNumber(content[current]))
+                {
+                    Minor += content[current];
+                    current++;
+                }
+            }
+            else
+            {
+                Minor = "0";
+            }
+
+            itemName = "\"PATCH\":";
+            current = content.IndexOf(itemName, StringComparison.OrdinalIgnoreCase);
+            if (current >= 0)
+            {
+                current += itemName.Length;
+                while (current < content.Length && char.IsNumber(content[current]))
+                {
+                    Patch += content[current];
+                    current++;
+                }
+            }
+            else
+            {
+                Patch = "0";
+            }
+
+            itemName = "\"BUILD\":";
+            current = content.IndexOf(itemName, StringComparison.OrdinalIgnoreCase);
+            if (current >= 0)
+            {
+                current += itemName.Length;
+                while (current < content.Length && char.IsNumber(content[current]))
+                {
+                    Build += content[current];
+                    current++;
+                }
+            }
+            else
+            {
+                Build = "0";
+            }
+
+            FullVersion = Major + "." + Minor + "." + Patch + "." + Build;
+]]></Code>
+    </Task>
+  </UsingTask>
+  <UsingTask TaskName="UpdateAssemblyVersion" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+    <ParameterGroup>
+      <Path ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+            string content = File.ReadAllText(Path);
+            string newContent = Regex.Replace(content, "AssemblyVersion\\(\\\"(.*)\\\"\\)", "AssemblyVersion(\"" + Version + "\")");
+            newContent = Regex.Replace(newContent, "AssemblyFileVersion\\(\\\"(.*)\\\"\\)", "AssemblyFileVersion(\"" + Version + "\")");
+            if (content != newContent)
+                File.WriteAllText(Path, newContent);
+]]></Code>
+    </Task>
+  </UsingTask>
+</Project>
