@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using Smooth.Slinq;
 using UnityEngine;
 
 namespace PartScaler
@@ -46,7 +48,7 @@ namespace PartScaler
         /// <summary>
         /// The node scale array. If node scales are defined the nodes will be resized to these values.
         ///</summary>
-        protected int[] ScaleNodes = { };
+        protected int[] ScaleNodes = Array.Empty<int>();
 
         /// <summary>
         /// The unmodified prefab part. From this, default values are found.
@@ -69,6 +71,8 @@ namespace PartScaler
         private bool _firstUpdate = true;
         public bool ignoreResourcesForCost = false;
         public bool scaleMass = true;
+
+        public bool SetupRun => _setupRun;
 
         /// <summary>
         /// Updaters for different PartModules.
@@ -114,10 +118,29 @@ namespace PartScaler
 
         protected virtual void SetupPrefab()
         {
-            var PartNode = GameDatabase.Instance.GetConfigs("PART").FirstOrDefault(c => c.name.Replace('_', '.') == part.name).config;
-            var ModuleNode = PartNode.GetNodes("MODULE").FirstOrDefault(n => n.GetValue("name") == moduleName);
+            ConfigNode moduleNode = null;
+            foreach (UrlDir.UrlConfig urlConfig in GameDatabase.Instance.GetConfigs("PART"))
+            {
+                if (urlConfig.name.Replace('_', '.') != part.name)
+                    continue;
 
-            ScaleType = new ScaleType(ModuleNode);
+                foreach (ConfigNode node in urlConfig.config.nodes)
+                {
+                    if (node.name == "MODULE" && node.GetValue("name") == moduleName)
+                    {
+                        moduleNode = node;
+                        break;
+                    }
+                }
+            }
+
+            if (moduleNode == null)
+            {
+                Debug.LogError($"[PartScaler] Couldn't find module ConfigNode in part {part.name}");
+                return;
+            }
+
+            ScaleType = new ScaleType(moduleNode);
             SetupFromConfig(ScaleType);
             tweakScale = currentScale = defaultScale;
         }
@@ -134,7 +157,7 @@ namespace PartScaler
             _prefabPart = part.partInfo.partPrefab;
             _updaters = TweakScaleUpdater.CreateUpdaters(part).ToArray();
 
-            ScaleType = (_prefabPart.Modules["TweakScale"] as PartScaler).ScaleType;
+            ScaleType = _prefabPart.FindModuleImplementing<PartScaler>().ScaleType;
             SetupFromConfig(ScaleType);
 
             if (!isFreeScale && ScaleFactors.Length != 0)
@@ -157,7 +180,9 @@ namespace PartScaler
             }
             else
             {
-                DryCost = (float)(part.partInfo.cost - _prefabPart.Resources.Cast<PartResource>().Aggregate(0.0, (a, b) => a + b.maxAmount * b.info.unitCost));
+                DryCost = part.partInfo.cost;
+                foreach (PartResource resource in part.Resources)
+                    DryCost += (float)(resource.maxAmount * resource.info.unitCost);
 
                 if (DryCost < 0)
                 {
@@ -220,12 +245,11 @@ namespace PartScaler
         {
             base.OnLoad(node);
 
-            if (part.partInfo == null)
+            if (HighLogic.LoadedScene == GameScenes.LOADING)
             {
                 // Loading of the prefab from the part config
                 _prefabPart = part;
                 SetupPrefab();
-
             }
             else
             {
@@ -268,7 +292,7 @@ namespace PartScaler
         /// <summary>
         /// Scale has changed!
         /// </summary>
-        private void OnTweakScaleChanged()
+        public void OnTweakScaleChanged()
         {
             if (!isFreeScale)
             {
@@ -444,65 +468,74 @@ namespace PartScaler
         private void ScalePart(bool moveParts, bool absolute)
         {
             ScalePartTransform();
+            ScaleVariantsAttachNodes(absolute);
+            ScaleAttachNodes(moveParts, absolute);
+        }
 
-            int len = part.attachNodes.Count;
-            for (int i=0; i< len; i++)
+        private void ScaleAttachNodes(bool moveParts, bool absolute)
+        {
+            
+            foreach (AttachNode attachNode in part.attachNodes)
             {
-                var node = part.attachNodes[i];
-                var nodesWithSameId = part.attachNodes
-                    .Where(a => a.id == node.id)
-                    .ToArray();
-                var idIdx = Array.FindIndex(nodesWithSameId, a => a == node);
-                var baseNodesWithSameId = _prefabPart.attachNodes
-                    .Where(a => a.id == node.id)
-                    .ToArray();
-                if (idIdx < baseNodesWithSameId.Length)
+                bool nodeIsOnVariant = false;
+                if (part.variants != null && part.variants.SelectedVariant != null)
                 {
-                    var baseNode = baseNodesWithSameId[idIdx];
-
-                    MoveNode(node, baseNode, moveParts, absolute);
-                }
-                else
-                {
-                    Tools.LogWf("Error scaling part. Node {0} does not have counterpart in base part.", node.id);
-                }
-            }
-
-            try
-            {
-                // support for ModulePartVariants (the stock texture switch module)
-                if (_prefabPart.Modules.Contains("ModulePartVariants"))
-                {
-                    var pm = _prefabPart.Modules["ModulePartVariants"] as ModulePartVariants;
-                    var m = part.Modules["ModulePartVariants"] as ModulePartVariants;
-
-                    var n = pm.variantList.Count;
-                    for (int i = 0; i < n; i++)
+                    foreach (AttachNode variantNode in part.variants.SelectedVariant.AttachNodes)
                     {
-                        var v = m.variantList[i];
-                        var pv = pm.variantList[i];
-                        for (int j = 0; j < v.AttachNodes.Count; j++)
+                        if (attachNode.id == variantNode.id)
                         {
-                            // the module contains attachNodes, so we need to scale those
-                            MoveNode(v.AttachNodes[j], pv.AttachNodes[j], false, true);
+                            nodeIsOnVariant = true;
+                            if (moveParts)
+                                MovePart(attachNode.attachedPart, variantNode.position, attachNode.position);
+
+                            attachNode.position = variantNode.position;
+                            attachNode.originalPosition = variantNode.originalPosition;
+                            break;
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Tools.LogWf("Exception during stockTextureSwitch interaction" + e.ToString());
-            }
 
+                if (nodeIsOnVariant)
+                    continue;
+
+                AttachNode pristineNode = null;
+                foreach (AttachNode prefabNode in _prefabPart.attachNodes)
+                {
+                    if (attachNode.id == prefabNode.id)
+                    {
+                        pristineNode = prefabNode;
+                    }
+                }
+
+                if (pristineNode == null)
+                {
+                    Debug.LogError($"[PartScaler] Error scaling {part.partInfo.name}, node {attachNode.id} not found on prefab or variant");
+                    continue;
+                }
+
+                MoveNode(attachNode, pristineNode, moveParts, absolute);
+            }
 
             if (part.srfAttachNode != null)
             {
-                MoveNode(part.srfAttachNode, _prefabPart.srfAttachNode, moveParts, absolute);
+                if (part.variants != null && part.variants.SelectedVariant?.SrfAttachNode != null)
+                {
+                    if (moveParts)
+                        MovePart(part.srfAttachNode.attachedPart, part.variants.SelectedVariant.SrfAttachNode.position, part.srfAttachNode.position);
+
+                    part.srfAttachNode.position = part.variants.SelectedVariant.SrfAttachNode.position;
+                    part.srfAttachNode.originalPosition = part.variants.SelectedVariant.SrfAttachNode.originalPosition;
+                }
+                else
+                {
+                    MoveNode(part.srfAttachNode, _prefabPart.srfAttachNode, moveParts, absolute);
+                }
             }
+
             if (moveParts)
             {
                 int numChilds = part.children.Count;
-                for (int i=0; i<numChilds; i++)
+                for (int i = 0; i < numChilds; i++)
                 {
                     var child = part.children[i];
                     if (child.srfAttachNode == null || child.srfAttachNode.attachedPart != part)
@@ -511,6 +544,28 @@ namespace PartScaler
                     var attachedPosition = child.transform.localPosition + child.transform.localRotation * child.srfAttachNode.position;
                     var targetPosition = attachedPosition * ScalingFactor.relative.linear;
                     child.transform.Translate(targetPosition - attachedPosition, part.transform);
+                }
+            }
+        }
+
+        private void ScaleVariantsAttachNodes(bool absolute)
+        {
+            if (part.variants == null)
+                return;
+
+            for (int i = 0; i < part.variants.variantList.Count; i++)
+            {
+                PartVariant partVariant = part.variants.variantList[i];
+                PartVariant prefabVariant = _prefabPart.variants.variantList[i];
+
+                for (int j = 0; j < partVariant.AttachNodes.Count; j++)
+                {
+                    MoveNode(partVariant.AttachNodes[j], prefabVariant.AttachNodes[j], false, absolute);
+                }
+
+                if (partVariant.SrfAttachNode != null)
+                {
+                    MoveNode(partVariant.SrfAttachNode, prefabVariant.SrfAttachNode, false, absolute);
                 }
             }
         }
@@ -605,7 +660,7 @@ namespace PartScaler
         /// <param name="baseNode">The same node, as found on the prefab part.</param>
         /// <param name="movePart">Whether or not to move attached parts.</param>
         /// <param name="absolute">Whether to use absolute or relative scaling.</param>
-        private void MoveNode(AttachNode node, AttachNode baseNode, bool movePart, bool absolute)
+        public void MoveNode(AttachNode node, AttachNode baseNode, bool movePart, bool absolute)
         {
             if (baseNode == null)
             {
@@ -613,29 +668,43 @@ namespace PartScaler
                 absolute = false;
             }
 
-            var oldPosition = node.position;
+            Vector3 oldPosition = node.position;
 
             if (absolute)
-                node.position = baseNode.position * ScalingFactor.absolute.linear;
-            else
-                node.position = node.position * ScalingFactor.relative.linear;
-
-            var deltaPos = node.position - oldPosition;
-
-            if (movePart && node.attachedPart != null)
             {
-                if (node.attachedPart == part.parent)
-                {
-                    part.transform.Translate(-deltaPos, part.transform);
-                }
-                else
-                {
-                    var offset = node.attachedPart.attPos * (ScalingFactor.relative.linear - 1);
-                    node.attachedPart.transform.Translate(deltaPos + offset, part.transform);
-                    node.attachedPart.attPos *= ScalingFactor.relative.linear;
-                }
+                node.position = baseNode.position * ScalingFactor.absolute.linear;
+                node.originalPosition = baseNode.originalPosition * ScalingFactor.absolute.linear;
             }
+            else
+            {
+                node.position = node.position * ScalingFactor.relative.linear;
+                node.originalPosition = node.originalPosition * ScalingFactor.relative.linear;
+            }
+
+            if (movePart)
+                MovePart(node.attachedPart, node.position, oldPosition);
+
             ScaleAttachNode(node, baseNode);
+        }
+
+        private void MovePart(Part attachedPart, Vector3 newPosition, Vector3 oldPosition)
+        {
+            if (attachedPart == null)
+                return;
+
+            Vector3 deltaPos = newPosition - oldPosition;
+
+            if (attachedPart == part.parent)
+            {
+                part.transform.Translate(-deltaPos, part.transform);
+            }
+            else
+            {
+                var offset = attachedPart.attPos * (ScalingFactor.relative.linear - 1);
+                attachedPart.transform.Translate(deltaPos + offset, part.transform);
+                attachedPart.attPos *= ScalingFactor.relative.linear;
+            }
+
         }
 
         /// <summary>
@@ -694,20 +763,25 @@ namespace PartScaler
         /// </summary>
         private void MarkWindowDirty() // redraw the right-click window with the updated stats
         {
-            foreach (var win in FindObjectsOfType<UIPartActionWindow>().Where(win => win.part == part))
-            {
-                // This causes the slider to be non-responsive - i.e. after you click once, you must click again, not drag the slider.
-                win.displayDirty = true;
-            }
+            if (part.PartActionWindow != null && part.PartActionWindow.isActiveAndEnabled)
+                part.PartActionWindow.displayDirty = true;
         }
 
         public float GetModuleCost(float defaultCost, ModifierStagingSituation situation)
         {
             if (_setupRun && IsRescaled)
                 if (ignoreResourcesForCost)
-                  return (DryCost - part.partInfo.cost);
+                {
+                    return (DryCost - part.partInfo.cost);
+                }
                 else
-                  return (float)(DryCost - part.partInfo.cost + part.Resources.Cast<PartResource>().Aggregate(0.0, (a, b) => a + b.maxAmount * b.info.unitCost));
+                {
+                    double cost = DryCost - part.partInfo.cost;
+                    foreach (PartResource resource in part.Resources)
+                        cost += resource.maxAmount * resource.info.unitCost;
+
+                    return (float) cost;
+                }
             else
               return 0;
         }
