@@ -128,7 +128,7 @@ namespace PartScaler
 
         public void OnRescale(ScalingFactor factor)
         {
-            ScaleExponents.UpdateObject(_part, _basePart, _ts.ScaleType.Exponents, factor);
+            //ScaleExponents.UpdateObject(_part, _basePart, _ts.ScaleType.Exponents, factor);
         }
     }
 
@@ -182,7 +182,8 @@ namespace PartScaler
             {
                 return;
             }
-            var factor = _ts.ScalingFactor;
+            //var factor = _ts.ScalingFactor;
+            var factor = new ScalingFactor(1f, 1f, 0); // let me compile, stupid thing
 
             if (!_scales.ContainsKey(pe))
             {

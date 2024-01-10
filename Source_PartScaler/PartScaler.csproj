@@ -45,9 +45,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="StackPreset.cs" />
     <Compile Include="Utility\ExtensionMethods.cs" />
     <Compile Include="MemberUpdater.cs" />
-    <Compile Include="KSPAddons\PrefabDryCostWriter.cs" />
     <Compile Include="KSPAddons\ScaleExponents.cs" />
     <Compile Include="KSPAddons\SingletonBehavior.cs" />
     <Compile Include="KSPAddons\Tech.cs" />
